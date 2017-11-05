@@ -3,66 +3,75 @@
 import os
 import trie
 from time import sleep
+import RPi.GPIO as GPIO
 
 # CONTROL COMMAND
 SPACE      = 27
 REPEAT     = 28
-BACKASPACE = 29
+BACKSPACE  = 29
 RESET      = 30
 COMMIT     = 31
 
-import RPi.GPIO as GPIO
+BUTTON_5 = 27
+BUTTON_4 = 26
+BUTTON_3 = 25
+BUTTON_2 = 24
+BUTTON_1 = 23
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(23, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-GPIO.setup(24, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-GPIO.setup(25, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-GPIO.setup(26, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-GPIO.setup(27, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+GPIO.setup(BUTTON_1, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+GPIO.setup(BUTTON_2, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+GPIO.setup(BUTTON_3, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+GPIO.setup(BUTTON_4, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+GPIO.setup(BUTTON_5, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
 
 pindex = 0
+sentence = ""
 word = ""
-
 map = " abcdefghijklmnopqrstuvwxyz"
+
 trie = trie.Trie()
 f = open("words.txt", "r")
 for line in f:
     line = line[:len(line)-2]
-    #print(line, ", ", line.isalpha())
     trie.add(line)
 
 while True:
     cindex = 0
-    if (GPIO.input(27) == True):
+    if (GPIO.input(BUTTON_5) == True):
         cindex += 16
-    if (GPIO.input(26) == True):
+    if (GPIO.input(BUTTON_4) == True):
         cindex += 8
-    if (GPIO.input(25) == True):
+    if (GPIO.input(BUTTON_3) == True):
         cindex += 4
-    if (GPIO.input(24) == True):
+    if (GPIO.input(BUTTON_2) == True):
         cindex += 2
-    if (GPIO.input(23) == True):
+    if (GPIO.input(BUTTON_1) == True):
         cindex += 1
 
     if (cindex == 0 and pindex != 0):
-        if (pindex == 31):
-            #print(word)
+        if (pindex == COMMIT):
+            os.system('./test_speech.sh ' + sentence)
+            sentence = ""
+        elif (pindex == SPACE):
             if (trie.has_word(word)):
-                os.system('./test_speech.sh ' + word)
+                if (sentence == ""):
+                    sentence += word
+                else:
+                    sentence += " " + word
             word = ""
-	elif (pindex == 30):
-	    word = ""
-	elif (pindex == 29):
-	    word = word[:len(word)-1]
-	    #print word
-        else:
+        elif (pindex == RESET):
+            word = ""
+        elif (pindex == REPEAT):
+            sentence += " " + sentence + " " + sentence 
+        elif (pindex == BACKSPACE):
+            word = word[:len(word) - 1]
+        elif (1 <= pindex <= 26):
             word += map[pindex]
-            #print ('Letter', map[pindex])
-	    #print word
-	print word
+        print(sentence + "-" + word)
     pindex = cindex
 
-    sleep(0.5)
+    sleep(0.2)
 
 
 
